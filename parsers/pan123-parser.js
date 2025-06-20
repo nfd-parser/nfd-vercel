@@ -1,71 +1,119 @@
 /**
- * 123云盘解析器
- * 支持123云盘分享链接的直链解析
- * 注意：这是一个示例实现，实际使用时需要根据123云盘的具体API进行调整
+ * 123云盘解析器（支持加密/非加密/文件夹/最终直链解密）
+ * 依赖：axios, js-exec, base64
  */
 
-const { get: httpGet, post, parseHTML, retryRequest } = require('../utils/http-client');
+const axios = require('axios');
 const { get: cacheGet, set, generateCacheKey, getCacheTTL } = require('../utils/cache');
 const { logger } = require('../utils/logger');
 const config = require('../config/app-config');
+const { getSign } = require('./vmjs/ye123');
+const { getFileType } = require('../utils/file-utils');
+
+// 123网盘多域名正则
+const PAN123_URL_REGEX = /https:\/\/www\.(123pan\.com|123865\.com|123684\.com|123912\.com|123pan\.cn)\/s\/(?<KEY>[^/?#]+)(?:\.html)?/i;
+
+// 文件大小格式化
+function formatFileSize(bytes) {
+  if (!bytes || isNaN(bytes)) return '0B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  let num = bytes;
+  while (num >= 1024 && i < units.length - 1) {
+    num /= 1024;
+    i++;
+  }
+  return `${num.toFixed(2)} ${units[i]}`;
+}
+
+// 从文件名提取扩展名
+function getFileTypeByName(fileName) {
+  return getFileType(fileName);
+}
 
 class Pan123Parser {
   constructor() {
     this.config = config.netdisk.pan123;
     this.panType = 'pan123';
+    this.headers = {
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+      'App-Version': '3',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'LoginUuid': Math.random().toString(36).slice(2),
+      'Pragma': 'no-cache',
+      'Sec-Fetch-Dest': 'empty',
+      'Sec-Fetch-Mode': 'cors',
+      'Sec-Fetch-Site': 'same-origin',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0',
+      'platform': 'web',
+      'sec-ch-ua': '"Not)A;Brand";v="99", "Microsoft Edge";v="127", "Chromium";v="127"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': 'Windows'
+    };
+  }
+
+  static validateUrl(url) {
+    return PAN123_URL_REGEX.test(url);
+  }
+
+  static extractShareKey(url) {
+    const match = url.match(PAN123_URL_REGEX);
+    return match && match.groups && match.groups.KEY ? match.groups.KEY : null;
   }
 
   /**
-   * 解析123云盘分享链接
-   * @param {string} shareId 分享ID
-   * @param {string} password 密码（可选）
-   * @returns {Promise<object>} 解析结果
+   * 解析入口
+   * @param {string} shareId 分享key
+   * @param {string} password 分享密码
+   * @returns {Promise<object>}
    */
   async parse(shareId, password = '') {
     const cacheKey = generateCacheKey(this.panType, shareId, password);
-    
-    // 检查缓存
     const cached = cacheGet(cacheKey);
     if (cached) {
       logger.info(`Cache hit for pan123: ${shareId}`);
       return cached;
     }
 
+    this.shareId = shareId;
     try {
       logger.info(`Parsing pan123 share: ${shareId}`);
-      
-      // 获取分享信息
-      const shareInfo = await this.getShareInfo(shareId);
-      
-      if (!shareInfo) {
-        throw new Error('无法获取分享信息');
+      const shareUrl = `https://www.123pan.com/s/${shareId}.html`;
+
+      // 1. 获取分享页HTML
+      const html = (await axios.get(shareUrl, { headers: this.headers })).data;
+      if (html.includes('分享链接已失效')) throw new Error('该分享已失效');
+
+      // 2. 提取 window.g_initialProps
+      const match = html.match(/window\.g_initialProps\s*=\s*(.*);/);
+      if (!match) throw new Error('找不到文件信息');
+      const fileInfo = JSON.parse(match[1]);
+      const resJson = fileInfo.res;
+      const resListJson = fileInfo.reslist;
+
+      if (!resJson || resJson.code !== 0) throw new Error('解析到异常JSON: ' + JSON.stringify(resJson));
+      const shareKey = resJson.data.ShareKey;
+
+      // 3. 判断是否加密分享
+      let reqBodyJson;
+      if (!resListJson || resListJson.code !== 0) {
+        if (!password) throw new Error('该分享需要密码');
+        // 加密分享，获取文件信息
+        reqBodyJson = await this.getFileInfoByPwd(shareKey, password);
+      } else {
+        reqBodyJson = resListJson.data.InfoList[0];
+        reqBodyJson.ShareKey = shareKey;
       }
 
-      // 检查是否需要密码
-      if (shareInfo.needPassword && !password) {
-        throw new Error('此分享需要密码');
+      // 4. 判断文件/文件夹
+      if (reqBodyJson.Type === 1) {
+        // 文件夹，获取批量下载直链
+        return await this.getZipDownUrl(reqBodyJson);
+      } else {
+        // 单文件
+        return await this.getDownUrl(reqBodyJson);
       }
-
-      // 获取下载链接
-      const downloadUrl = await this.getDownloadUrl(shareId, password, shareInfo);
-
-      // 构建结果
-      const result = {
-        success: true,
-        panType: this.panType,
-        shareId,
-        fileName: shareInfo.fileName,
-        fileSize: shareInfo.fileSize,
-        downloadUrl,
-        timestamp: new Date().toISOString()
-      };
-
-      // 缓存结果
-      set(cacheKey, result, getCacheTTL(this.panType));
-      
-      logger.info(`Successfully parsed pan123 share: ${shareId}`);
-      return result;
-
     } catch (error) {
       logger.error(`Failed to parse pan123 share: ${shareId}`, { error: error.message });
       throw error;
@@ -73,129 +121,109 @@ class Pan123Parser {
   }
 
   /**
-   * 获取分享信息
-   * @param {string} shareId 分享ID
-   * @returns {Promise<object>} 分享信息
+   * 加密分享获取文件信息
    */
-  async getShareInfo(shareId) {
-    try {
-      // 构建分享页面URL
-      const shareUrl = `${this.config.baseUrl}/s/${shareId}`;
-      
-      // 获取分享页面
-      const response = await retryRequest(() => httpGet(shareUrl));
-      
-      // 解析HTML
-      const $ = parseHTML(response.data);
-      
-      // 提取文件信息
-      const fileInfo = this.extractFileInfo($);
-      
-      if (!fileInfo) {
-        throw new Error('无法解析文件信息');
-      }
-      
-      return fileInfo;
-    } catch (error) {
-      logger.error('Failed to get share info', { error: error.message });
-      throw error;
-    }
+  async getFileInfoByPwd(shareKey, pwd) {
+    const url = `https://www.123pan.com/a/api/share/get?limit=100&next=1&orderBy=file_name&orderDirection=asc&shareKey=${encodeURIComponent(shareKey)}&SharePwd=${encodeURIComponent(pwd)}&ParentFileId=0&Page=1&event=homeListFile&operateType=1`;
+    const res = await axios.get(url, { headers: this.headers });
+    if (res.data.code !== 0) throw new Error('加密分享文件信息获取失败: ' + JSON.stringify(res.data));
+    const info = res.data.data.InfoList[0];
+    info.ShareKey = shareKey;
+    return info;
   }
 
   /**
-   * 从HTML中提取文件信息
-   * @param {object} $ cheerio对象
-   * @returns {object} 文件信息
+   * 获取单文件下载直链
    */
-  extractFileInfo($) {
-    try {
-      // 检查是否需要密码
-      const needPassword = $('.password-input').length > 0 || 
-                          $('[data-password]').length > 0;
-      
-      // 提取文件名
-      const fileName = $('.file-name').text().trim() ||
-                      $('.filename').text().trim() ||
-                      $('title').text().replace('123云盘', '').trim();
-      
-      // 提取文件大小
-      const fileSizeText = $('.file-size').text().trim() ||
-                          $('.size').text().trim();
-      const fileSize = this.parseFileSize(fileSizeText);
-      
-      // 提取其他信息
-      const fileId = $('input[name="file_id"]').val() ||
-                    $('[data-file-id]').attr('data-file-id');
-      
-      const shareToken = $('input[name="share_token"]').val() ||
-                        $('[data-share-token]').attr('data-share-token');
-      
-      return {
-        needPassword,
-        fileName,
-        fileSize,
-        fileId,
-        shareToken
-      };
-    } catch (error) {
-      logger.error('Failed to extract file info from HTML', { error: error.message });
-      return null;
-    }
+  async getDownUrl(reqBodyJson) {
+    // 5. 获取签名
+    const [authK, authV] = getSign('/a/api/share/download/info');
+    const downloadApi = `https://www.123pan.com/a/api/share/download/info?${authK}=${authV}`;
+    const downRes = await axios.post(downloadApi, {
+      ShareKey: reqBodyJson.ShareKey,
+      FileID: reqBodyJson.FileId,
+      S3keyFlag: reqBodyJson.S3KeyFlag,
+      Size: reqBodyJson.Size,
+      Etag: reqBodyJson.Etag
+    }, { headers: this.headers });
+
+    if (downRes.data.code !== 0) throw new Error('下载API返回异常: ' + JSON.stringify(downRes.data));
+    let downURL = downRes.data.data.DownloadURL;
+
+    // 6. 解析最终直链（Base64解码）
+    downURL = await this.decodeAndGetFinalUrl(downURL);
+
+    const info = reqBodyJson;
+    const fileInfo = {
+      fileName: info.FileName,
+      fileSize: formatFileSize(info.Size),
+      fileType: getFileTypeByName(info.FileName),
+      uploadTime: info.CreateAt || ''
+    };
+
+    return {
+      success: true,
+      panType: this.panType,
+      shareId: this.shareId,
+      shareKey: `pan123:${info.ShareKey}`,
+      fileInfo,
+      downloadUrl: downURL,
+      timestamp: new Date().toISOString()
+    };
   }
 
   /**
-   * 获取下载链接
-   * @param {string} shareId 分享ID
-   * @param {string} password 密码
-   * @param {object} shareInfo 分享信息
-   * @returns {Promise<string>} 下载链接
+   * 获取文件夹批量下载直链
    */
-  async getDownloadUrl(shareId, password, shareInfo) {
-    try {
-      const postData = {
-        share_id: shareId,
-        file_id: shareInfo.fileId,
-        share_token: shareInfo.shareToken
-      };
+  async getZipDownUrl(reqBodyJson) {
+    const [authK, authV] = getSign('/b/api/file/batch_download_share_info');
+    const batchApi = `https://www.123pan.com/b/api/file/batch_download_share_info?${authK}=${authV}`;
+    const downRes = await axios.post(batchApi, {
+      ShareKey: reqBodyJson.ShareKey,
+      fileIdList: [{ fileId: reqBodyJson.FileId }]
+    }, { headers: this.headers });
 
-      if (password) {
-        postData.password = password;
-      }
+    if (downRes.data.code !== 0) throw new Error('批量下载API返回异常: ' + JSON.stringify(downRes.data));
+    let downURL = downRes.data.data.DownloadUrl;
 
-      const response = await retryRequest(() => 
-        post(this.config.apiUrl, postData, {
-          headers: {
-            ...this.config.headers,
-            'Content-Type': 'application/json'
-          }
-        })
-      );
+    // 解析最终直链
+    downURL = await this.decodeAndGetFinalUrl(downURL);
 
-      if (response && response.data && response.data.code === 0 && response.data.data && response.data.data.download_url) {
-        return response.data.data.download_url;
-      }
+    const info = reqBodyJson;
+    const fileInfo = {
+      fileName: info.FileName,
+      fileSize: formatFileSize(info.Size),
+      fileType: getFileTypeByName(info.FileName),
+      uploadTime: info.CreateAt || ''
+    };
 
-      throw new Error(response?.data?.message || '获取下载链接失败');
-    } catch (error) {
-      logger.error('Failed to get download URL', { error: error.message });
-      throw error;
-    }
+    return {
+      success: true,
+      panType: this.panType,
+      shareId: this.shareId,
+      shareKey: `pan123:${info.ShareKey}`,
+      fileInfo,
+      downloadUrl: downURL,
+      timestamp: new Date().toISOString()
+    };
   }
 
   /**
-   * 解析文件大小
-   * @param {string} sizeText 大小文本
-   * @returns {string} 格式化的大小
+   * 解码最终直链
    */
-  parseFileSize(sizeText) {
-    if (!sizeText) return '未知';
-    
-    // 移除多余字符
-    const cleanSize = sizeText.replace(/[^\d.]/g, '');
-    if (!cleanSize) return sizeText;
-    
-    return sizeText.trim();
+  async decodeAndGetFinalUrl(downURL) {
+    // 解析 params 参数并 base64 解码
+    const urlObj = new URL(downURL);
+    const params = urlObj.searchParams.get('params');
+    if (!params) return downURL;
+    const decodeByte = Buffer.from(params, 'base64');
+    const downUrl2 = decodeByte.toString();
+    // 再请求一次获取最终直链
+    const res3 = await axios.get(downUrl2, { headers: this.headers });
+    if (res3.data.code !== 0) throw new Error('最终直链API返回异常: ' + JSON.stringify(res3.data));
+    return res3.data.data.redirect_url;
   }
+
 
   /**
    * 验证URL是否为123云盘链接
@@ -204,8 +232,7 @@ class Pan123Parser {
    */
   validateUrl(url) {
     const patterns = [
-      /https?:\/\/(www\.)?123pan\.com\/s\/([a-zA-Z0-9]+)/,
-      /https?:\/\/(www\.)?123pan\.com\/share\/([a-zA-Z0-9]+)/
+      /https:\/\/www\.(123pan\.com|123865\.com|123684\.com|123912\.com|123pan\.cn)\/s\/(?<KEY>[^/?#]+)(?:\.html)?/,
     ];
     
     for (const pattern of patterns) {
@@ -220,16 +247,6 @@ class Pan123Parser {
     }
     
     return null;
-  }
-
-  /**
-   * 从URL中提取分享ID
-   * @param {string} url 分享链接
-   * @returns {string|null} 分享ID
-   */
-  extractShareId(url) {
-    const match = url.match(/\/([a-zA-Z0-9]+)(?:\/|$)/);
-    return match ? match[1] : null;
   }
 }
 

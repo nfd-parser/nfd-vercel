@@ -10,6 +10,8 @@ const { logger } = require('../utils/logger');
 const { normalizeFileSize, getFileType } = require('../utils/file-utils');
 const config = require('../config/app-config');
 
+const LANZOU_URL_REGEX = /https:\/\/(?:[a-zA-Z\d-]+\.)?((lanzou[a-z])|(lanzn))\.com\/(?:.+\/)?(?<KEY>[^/?#]+)/i;
+
 class LanzouParser {
   constructor() {
     this.config = config.netdisk.lanzou;
@@ -629,39 +631,22 @@ class LanzouParser {
   }
 
   /**
-   * 验证URL是否为蓝奏云链接
-   * @param {string} url 分享链接
-   * @returns {object|null} 验证结果
+   * 校验是否为蓝奏云链接
+   * @param {string} url
+   * @returns {boolean}
    */
-  validateUrl(url) {
-    const patterns = [
-      /https?:\/\/([a-zA-Z0-9]*\.)?lanzou[a-zA-Z0-9]\.com\/([a-zA-Z0-9]+)/,
-      /https?:\/\/([a-zA-Z0-9]*\.)?lanzn\.com\/([a-zA-Z0-9]+)/,
-      /https?:\/\/([a-zA-Z0-9]*\.)?lanzouxs\.com\/([a-zA-Z0-9]+)/
-    ];
-    
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) {
-        return {
-          isValid: true,
-          shareId: match[2],
-          panType: 'lz'
-        };
-      }
-    }
-    
-    return null;
+  static validateUrl(url) {
+    return LANZOU_URL_REGEX.test(url);
   }
 
   /**
-   * 从URL中提取分享ID
-   * @param {string} url 分享链接
-   * @returns {string|null} 分享ID
+   * 提取蓝奏云分享key
+   * @param {string} url
+   * @returns {string|null}
    */
-  extractShareId(url) {
-    const match = url.match(/\/([a-zA-Z0-9]+)(?:\/|$)/);
-    return match ? match[1] : null;
+  static extractShareKey(url) {
+    const match = url.match(LANZOU_URL_REGEX);
+    return match && match.groups && match.groups.KEY ? match.groups.KEY : null;
   }
 }
 

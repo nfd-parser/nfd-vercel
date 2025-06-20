@@ -13,25 +13,17 @@ const config = {
   // 缓存配置
   cache: {
     // 缓存时间（秒）
-    defaultTTL: 3600, // 1小时
+    defaultTTL: 300, // 默认5分钟
     // 蓝奏云缓存时间
     lanzouTTL: 1800, // 30分钟
     // 奶牛快传缓存时间
     cowTTL: 3600, // 1小时
     // 123云盘缓存时间
-    pan123TTL: 7200, // 2小时
+    pan123TTL: 300, // 2小时
     // 移动云缓存时间
-    mobileTTL: 3600, // 1小时
+    mobileTTL: 300, // 1小时
     // 小飞机盘缓存时间
-    telegramTTL: 3600, // 1小时
-    // 360亿方云缓存时间
-    fang360TTL: 3600, // 1小时
-    // 文叔叔缓存时间
-    wenshushuTTL: 3600, // 1小时
-    // 夸克网盘缓存时间
-    quarkTTL: 3600, // 1小时
-    // UC网盘缓存时间
-    ucTTL: 3600 // 1小时
+    telegramTTL: 1500, // 25分钟
   },
 
   // 请求配置

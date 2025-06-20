@@ -3,6 +3,7 @@
  * 统一管理所有网盘解析器
  */
 
+const { get: cacheGet, set: cacheSet, generateCacheKey, getCacheTTL } = require('../utils/cache');
 const LanzouParser = require('./lanzou-parser');
 const CowParser = require('./cow-parser');
 const Pan123Parser = require('./pan123-parser');
@@ -32,12 +33,6 @@ class ParserManager {
       'cow': 'cow',
       '123pan': 'pan123',
       'pan123': 'pan123',
-      'mobile': 'mobile',
-      'telegram': 'telegram',
-      'fang360': 'fang360',
-      'wenshushu': 'wenshushu',
-      'quark': 'quark',
-      'uc': 'uc'
     };
 
     // 支持的网盘列表
@@ -45,7 +40,7 @@ class ParserManager {
       {
         name: '蓝奏云',
         type: 'lz',
-        domains: ['lanzoux.com', 'lanzoui.com', 'lanzou.com'],
+        domains: ['lanzoux.com', 'lanzoui.com', 'lanzou.com', 'lanzouw.com', 'lanzn.com'],
         description: '支持普通分享和加密分享，单文件最大100M'
       },
       {
@@ -57,7 +52,7 @@ class ParserManager {
       {
         name: '123云盘',
         type: 'pan123',
-        domains: ['123pan.com'],
+        domains: ['123865.com', '123684.com', '123912.com', '123pan.cn', '123pan.com'],
         description: '支持普通分享和加密分享，单文件最大100G'
       }
       // 可以继续添加其他网盘信息
@@ -97,25 +92,50 @@ class ParserManager {
   }
 
   /**
-   * 自动识别网盘类型并解析
-   * @param {string} url 分享链接
-   * @param {string} password 密码（可选）
-   * @returns {Promise<object>} 解析结果
+   * 通过url自动识别网盘类型并解析
    */
-  async parseByUrl(url, password = '') {
-    try {
-      // 尝试识别网盘类型
-      const panInfo = this.identifyPanType(url);
-      
-      if (!panInfo) {
-        throw new Error('无法识别的网盘链接');
-      }
-
-      return await this.parse(panInfo.type, panInfo.shareId, password);
-    } catch (error) {
-      logger.error('Failed to parse by URL:', { url, error: error.message });
-      throw error;
+  async parseByUrl(url, pwd = '') {
+    // 识别类型和key
+    let panType, shareKey;
+    if (Pan123Parser.validateUrl(url)) {
+      panType = 'pan123';
+      shareKey = Pan123Parser.extractShareKey(url);
+    } else if (LanzouParser.validateUrl(url)) {
+      panType = 'lz';
+      shareKey = LanzouParser.extractShareKey(url);
+    } else {
+      throw new Error('不支持的网盘类型或无效链接');
     }
+    if (!shareKey) throw new Error('无法提取分享key');
+
+    // 统一缓存key
+    const cacheKey = generateCacheKey(panType, shareKey, pwd);
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    // 解析
+    const parser = this.parsers[panType];
+    if (!parser) throw new Error('未实现的网盘类型');
+    const result = await parser.parse(shareKey, pwd);
+
+    const cacheResult = JSON.parse(JSON.stringify(result));
+
+    // 设置缓存标志和缓存时间
+    // 如果ttl>0，则设置缓存时间
+    if (getCacheTTL(panType) > 0) {
+        cacheResult.cacheHit = true;
+        cacheResult.cacheTTL = getCacheTTL(panType);
+        cacheResult.cacheKey = cacheKey;
+        // yyyy-MM-dd HH:mm:ss格式 北京时间
+        cacheResult.expires = new Date(Date.now() + getCacheTTL(panType) * 1000).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+        cacheResult.cacheExpiration = Math.floor((new Date(Date.now() + getCacheTTL(panType) * 1000).getTime()) / 1000);
+        // 写缓存
+        cacheSet(cacheKey, cacheResult, getCacheTTL(panType));
+    } else {
+        result.cacheHit = false;
+    }
+
+    return result;
   }
 
   /**

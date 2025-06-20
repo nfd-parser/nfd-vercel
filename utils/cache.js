@@ -135,31 +135,20 @@ const getTtl = (key) => {
  * @returns {number} 缓存时间（秒）
  */
 const getCacheTTL = (panType) => {
-  const ttlMap = {
-    'lz': config.cache.lanzouTTL,
-    'cow': config.cache.cowTTL,
-    'pan123': config.cache.pan123TTL,
-    'mobile': config.cache.mobileTTL,
-    'telegram': config.cache.telegramTTL,
-    'fang360': config.cache.fang360TTL,
-    'wenshushu': config.cache.wenshushuTTL,
-    'quark': config.cache.quarkTTL,
-    'uc': config.cache.ucTTL
-  };
-  
-  return ttlMap[panType] || config.cache.defaultTTL;
+  // 优先读取config中各盘独立TTL配置，无则用defaultTTL（默认300秒）
+  const key = `${panType}TTL`;
+  return config.cache[key] || config.cache.defaultTTL || 300;
 };
 
 /**
  * 生成缓存键
  * @param {string} panType 网盘类型
- * @param {string} shareId 分享ID
- * @param {string} password 密码（可选）
+ * @param {string} shareKey 分享ID
+ * @param {string} pwd 密码（可选）
  * @returns {string} 缓存键
  */
-const generateCacheKey = (panType, shareId, password = '') => {
-  const key = `${panType}:${shareId}`;
-  return password ? `${key}:${password}` : key;
+const generateCacheKey = (panType, shareKey, pwd = '') => {
+  return `${panType}:${shareKey}:${pwd || ''}`;
 };
 
 module.exports = {

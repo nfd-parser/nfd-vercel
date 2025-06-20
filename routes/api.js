@@ -152,11 +152,6 @@ router.get('/json/parser', async (ctx) => {
     
     logger.info(`JSON parser API request: ${url}`);
     
-    // 检查缓存
-    const cacheKey = `${url}:${pwd || ''}`;
-    const cached = require('../utils/cache').get(cacheKey);
-    const cacheHit = !!cached;
-    
     const result = await parserManager.parseByUrl(url, pwd);
     
     // 检查是否返回了HTML错误信息
@@ -178,9 +173,9 @@ router.get('/json/parser', async (ctx) => {
     const responseData = {
       shareKey: `${result.panType}:${result.shareId}`,
       directLink: result.downloadUrl,
-      cacheHit: cacheHit,
-      expires: getCurrentBeijingTime(),
-      expiration: Date.now() + 3600000,
+      cacheHit: result.cacheHit,
+      expires: result.expires,
+      expiration: result.cacheExpiration,
       fileInfo: {
         fileName: result.fileName || result.fileInfo?.fileName || '未知文件',
         fileSize: result.fileSize || result.fileInfo?.fileSize || '未知',
@@ -245,11 +240,6 @@ router.get('/json/:panType/:shareInfo', async (ctx) => {
     
     logger.info(`JSON direct API request: ${panType}/${shareId}`);
     
-    // 检查缓存
-    const cacheKey = `${panType}:${shareId}:${password}`;
-    const cached = require('../utils/cache').get(cacheKey);
-    const cacheHit = !!cached;
-    
     const result = await parserManager.parse(panType, shareId, password);
     
     // 检查是否返回了HTML错误信息
@@ -271,9 +261,9 @@ router.get('/json/:panType/:shareInfo', async (ctx) => {
     const responseData = {
       shareKey: `${result.panType}:${result.shareId}`,
       directLink: result.downloadUrl,
-      cacheHit: cacheHit,
-      expires: getCurrentBeijingTime(),
-      expiration: Date.now() + 3600000,
+      cacheHit: result.cacheHit,
+      expires: result.expires,
+      expiration: result.cacheExpiration,
       fileInfo: {
         fileName: result.fileName || result.fileInfo?.fileName || '未知文件',
         fileSize: result.fileSize || result.fileInfo?.fileSize || '未知',
@@ -507,11 +497,6 @@ router.post('/parser', async (ctx) => {
 
     logger.info(`POST parser API request: ${url}`);
     
-    // 检查缓存
-    const cacheKey = `${ctx.request.body.url}:${password}`;
-    const cached = require('../utils/cache').get(cacheKey);
-    const cacheHit = !!cached;
-    
     // 解析分享链接
     const result = await parserManager.parseByUrl(url, password);
     
@@ -519,9 +504,9 @@ router.post('/parser', async (ctx) => {
     const responseData = {
       shareKey: `${result.panType}:${result.shareId}`,
       directLink: result.downloadUrl,
-      cacheHit: cacheHit,
-      expires: getCurrentBeijingTime(),
-      expiration: Date.now() + 3600000,
+      cacheHit: result.cacheHit,
+      expires: result.expires,
+      expiration: result.cacheExpiration,
       fileInfo: {
         fileName: result.fileName || result.fileInfo?.fileName || '未知文件',
         fileSize: result.fileSize || result.fileInfo?.fileSize || '未知',
@@ -578,11 +563,6 @@ router.get('/d', async (ctx) => {
 
     logger.info(`Direct download API request: ${url}`);
     
-    // 检查缓存
-    const cacheKey = `${url}:${pwd}`;
-    const cached = require('../utils/cache').get(cacheKey);
-    const cacheHit = !!cached;
-    
     // 解析分享链接
     const result = await parserManager.parseByUrl(url, pwd);
     
@@ -590,9 +570,9 @@ router.get('/d', async (ctx) => {
     const responseData = {
       shareKey: `${result.panType}:${result.shareId}`,
       directLink: result.downloadUrl,
-      cacheHit: cacheHit,
-      expires: getCurrentBeijingTime(),
-      expiration: Date.now() + 3600000,
+      cacheHit: result.cacheHit,
+      expires: result.expires,
+      expiration: result.cacheExpiration,
       fileInfo: {
         fileName: result.fileName || result.fileInfo?.fileName || '未知文件',
         fileSize: result.fileSize || result.fileInfo?.fileSize || '未知',
@@ -649,11 +629,6 @@ router.get('/json', async (ctx) => {
 
     logger.info(`JSON format API request: ${url}`);
     
-    // 检查缓存
-    const cacheKey = `${url}:${pwd}`;
-    const cached = require('../utils/cache').get(cacheKey);
-    const cacheHit = !!cached;
-    
     // 解析分享链接
     const result = await parserManager.parseByUrl(url, pwd);
     
@@ -661,9 +636,9 @@ router.get('/json', async (ctx) => {
     const responseData = {
       shareKey: `${result.panType}:${result.shareId}`,
       directLink: result.downloadUrl,
-      cacheHit: cacheHit,
-      expires: getCurrentBeijingTime(),
-      expiration: Date.now() + 3600000,
+      cacheHit: result.cacheHit,
+      expires: result.expires,
+      expiration: result.cacheExpiration,
       fileInfo: {
         fileName: result.fileName || result.fileInfo?.fileName || '未知文件',
         fileSize: result.fileSize || result.fileInfo?.fileSize || '未知',
