@@ -105,7 +105,8 @@ const setupRoutes = () => {
  * 启动服务器
  */
 const startServer = () => {
-  const port = config.server.port;
+  // 在Vercel环境中使用process.env.PORT，否则使用配置的端口
+  const port = process.env.PORT || config.server.port;
   const host = config.server.host;
   
   app.listen(port, host, () => {
