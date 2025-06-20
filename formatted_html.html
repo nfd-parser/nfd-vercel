@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+    <title>文件</title>
+    <meta name="description" content="文件大小：68.7 M" />
+    <script type="text/javascript" src="https://assets.woozooo.com/assets/includes/js/jquery.js"></script>
+    <script type="text/javascript" src="https://assets.woozooo.com/assets/img/qrcode.min.js"></script>
+    <link rel="shortcut icon" href="https://assets.woozooo.com/assets/favicon.ico">
+</head>
+<body>
+    <link href="https://assets.woozooo.com/assets/share/pc1.css" rel="stylesheet" type="text/css">
+    <link href="https://assets.woozooo.com/assets/share/pc2.css" rel="stylesheet" type="text/css">
+    
+    <div id="file" class="filter">
+        <div class="n_hd">
+            <div class="user-ico">
+                <div class="user-ico-div">
+                    <div class="user-ico-div-1"></div>
+                    <div class="user-ico-div-2"></div>
+                </div> 
+                <span class="user-name">15**</span>
+                <span class="user-name-txt">的分享文件</span>
+            </div>
+            <a href="/q/jb/?f=34682494&report=1" class="n_login">
+                <font id="rpt"> </font>
+            </a>
+        </div>
+        
+        <div class="n_box">
+            <div class="jingshi" id="jingshi"></div>
+            <div class="n_box_ico">
+                <span class="filename">
+                    <img src="https://assets.woozooo.com/assets/images/type/zip_max.gif">
+                </span>
+            </div>
+            <!--<div class="n_box_2fn"></div> -->
+            <div class="n_box_3fn" id="filenajax">文件</div>
+            <!--<div class="n_file_info"></div> -->
+            <div class="n_file_info">
+                <span class="n_file_infos">2020-12-23</span> 
+                <span class="n_file_infos">压缩文件</span>
+            </div>
+            <div class="n_file">
+                <div class="n_filesize">大小：68.7 M</div>
+                <div id="downajax"></div>
+            </div>
+            <div class="n_box_des"></div>
+        </div>
+        
+        <div class="n_bot">
+            <div id="pcode"></div>
+            <div id="code"></div>
+        </div>
+        <div class="n_foot" id="n_foot"></div>
+    </div>
+    
+    <div id="passwddiv">
+        <div class="passwddiv-center">
+            <div class="passwddiv-userico">
+                <div class="passwddiv-userico-0">
+                    <div class="passwddiv-userico-1"></div>
+                    <div class="passwddiv-userico-2"></div>
+                </div>
+            </div>
+            <div class="passwddiv-user">获取<span>15**</span>的文件</div>
+            <div class="passwddiv-input">
+                <input type="text" name="pwd" class="passwdinput" id="pwd" value="" placeholder="输入密码" />
+                <div class="passwddiv-btn" onclick="down_p();">
+                    <div class="passwddiv-btn-1"></div>
+                    <div class="passwddiv-btn-2"></div>
+                </div>
+            </div>
+            <div id="info"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        //回车事件
+        $(document).keyup(function (e) {
+            if (e.keyCode == 13) {
+                down_p();
+            }
+        });
+
+        function down_p(){
+            var kdns = 1;
+            var lanosso = '';
+            
+            var pwd = document.getElementById('pwd').value;
+            if (pwd == '' || pwd == undefined || pwd == null) {
+                $(".passwdinput").focus();
+                return false;
+            }
+            
+            /* 
+            var v3c = '100';//var skdklds = ' ';
+            $.ajax({
+                type : 'post',
+                url : '/ajaxm.php?file=34682494',
+                data : { 'action':'downprocess','sign':'UjRSbAs6V2ZRWAM8BjYHO1c_aATQCaAY1UmUGNFA_bV24EMwFwW3IGbwZhC2oGZgEzAG8PO141V2BSY1Ng','kd':kdns,'p':pwd, },
+                dataType : 'json',
+                success:function(msg){
+                    var date = msg;
+                    var dom_down = date.dom; 
+            */
+            
+            //var bcdf = 'c';
+            $.ajax({
+                type : 'post',
+                url : '/ajaxm.php?file=34682494',
+                data : { 
+                    'action':'downprocess',
+                    'sign':'B2FUag08AjNVXAI9BDQBPVY_aADECa1RuUmdWZFUwW25Vc1Z1WTlQNVU0AWJRNV1vVTYOPVc4UWNWZg_c_c',
+                    'kd':kdns,
+                    'p':pwd, 
+                },
+                dataType : 'json',
+                success:function(msg){
+                    var date = msg;
+                    var dom_down = date.dom;
+                    if(date.zt == '1'){
+                        $("#downajax").html("<a href="+dom_down+"/file/"+ date.url + lanosso +" target=_blank rel=noreferrer>下载</a>");
+                        $("#passwddiv").hide();
+                        $("#filenajax").text(date.inf);
+                        document.title = date.inf;
+                        $(".n_box_des").show();
+                        $("#file").removeClass("filter");
+                    }else{
+                        $("#info").text(date.inf);
+                    };
+                },
+                error:function(){
+                    $("#info").html("失败，请刷新");
+                }
+            });
+        }
+    </script>
+    
+    <script type="text/javascript" src="https://assets.woozooo.com/assets/share/pc2.js"></script>
+    <div style="display:none">
+        <script src="https://statics.woozooo.com/img/bd.js"></script>
+        <script src="https://statics.woozooo.com/img/hm.js"></script>
+    </div>
+</body>
+</html> 

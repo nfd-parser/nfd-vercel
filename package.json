@@ -1,0 +1,52 @@
+{
+  "name": "nfd-vercel-ai",
+  "version": "1.0.0",
+  "description": "网盘直链解析服务 - Node.js版本，支持Vercel部署",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "build": "echo 'Build completed'",
+    "vercel-build": "echo 'Vercel build completed'",
+    "test": "node test/test.js",
+    "test:local": "TEST_URL=http://localhost:3000 node test/test.js"
+  },
+  "keywords": [
+    "网盘",
+    "直链解析",
+    "蓝奏云",
+    "奶牛快传",
+    "123云盘",
+    "vercel",
+    "koa",
+    "nodejs"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "koa": "^2.14.2",
+    "koa-router": "^12.0.0",
+    "koa-bodyparser": "^4.4.1",
+    "koa-cors": "^0.0.16",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "node-cache": "^5.1.2",
+    "js-yaml": "^4.1.0",
+    "dotenv": "^16.3.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/nfd-vercel-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/nfd-vercel-ai/issues"
+  },
+  "homepage": "https://github.com/your-username/nfd-vercel-ai#readme"
+} 
