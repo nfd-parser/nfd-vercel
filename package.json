@@ -1,6 +1,6 @@
 {
   "name": "nfd-vercel-ai",
-  "version": "1.0.0",
+  "version": "1.0.9",
   "description": "网盘直链解析服务 - Node.js版本，支持Vercel部署",
   "main": "index.js",
   "scripts": {
