@@ -34,7 +34,7 @@ function getFileTypeByName(fileName) {
 class Pan123Parser {
   constructor() {
     this.config = config.netdisk.pan123;
-    this.panType = 'pan123';
+    this.panType = 'ye';
     this.headers = {
       'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
       'App-Version': '3',
@@ -72,13 +72,13 @@ class Pan123Parser {
     const cacheKey = generateCacheKey(this.panType, shareId, password);
     const cached = cacheGet(cacheKey);
     if (cached) {
-      logger.info(`Cache hit for pan123: ${shareId}`);
+      logger.info(`Cache hit for ye: ${shareId}`);
       return cached;
     }
 
     this.shareId = shareId;
     try {
-      logger.info(`Parsing pan123 share: ${shareId}`);
+      logger.info(`Parsing ye share: ${shareId}`);
       const shareUrl = `https://www.123pan.com/s/${shareId}.html`;
 
       // 1. 获取分享页HTML
@@ -115,7 +115,7 @@ class Pan123Parser {
         return await this.getDownUrl(reqBodyJson);
       }
     } catch (error) {
-      logger.error(`Failed to parse pan123 share: ${shareId}`, { error: error.message });
+      logger.error(`Failed to parse ye share: ${shareId}`, { error: error.message });
       throw error;
     }
   }
@@ -165,7 +165,7 @@ class Pan123Parser {
       success: true,
       panType: this.panType,
       shareId: this.shareId,
-      shareKey: `pan123:${info.ShareKey}`,
+      shareKey: `ye:${info.ShareKey}`,
       fileInfo,
       downloadUrl: downURL,
       timestamp: new Date().toISOString()
@@ -201,7 +201,7 @@ class Pan123Parser {
       success: true,
       panType: this.panType,
       shareId: this.shareId,
-      shareKey: `pan123:${info.ShareKey}`,
+      shareKey: `ye:${info.ShareKey}`,
       fileInfo,
       downloadUrl: downURL,
       timestamp: new Date().toISOString()
@@ -241,7 +241,7 @@ class Pan123Parser {
         return {
           isValid: true,
           shareId: match[2],
-          panType: 'pan123'
+          panType: 'ye'
         };
       }
     }

@@ -53,7 +53,8 @@ async function get(url, options = {}, parserType = 'default', requestType = 'sha
       headers: response.headers ? JSON.parse(JSON.stringify(response.headers)) : {}
     };
   } catch (error) {
-    logger.error(`HTTP GET failed: ${url}`, error.message);
+    // 只打印简要错误信息，避免刷屏
+    logger.error(`HTTP GET failed: ${url} - ${error.code || ''} ${error.message}`);
     throw error;
   }
 }
@@ -95,7 +96,8 @@ async function post(url, data, options = {}, parserType = 'default', requestType
       headers: response.headers ? JSON.parse(JSON.stringify(response.headers)) : {}
     };
   } catch (error) {
-    logger.error(`HTTP POST failed: ${url}`, error.message);
+    // 只打印简要错误信息，避免刷屏
+    logger.error(`HTTP POST failed: ${url} - ${error.code || ''} ${error.message}`);
     throw error;
   }
 }

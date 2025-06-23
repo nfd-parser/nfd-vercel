@@ -143,7 +143,6 @@ router.get('/json/parser', async (ctx) => {
         code: 400,
         msg: '请提供分享链接',
         success: false,
-        count: 0,
         data: null,
         timestamp: Date.now()
       };
@@ -161,7 +160,6 @@ router.get('/json/parser', async (ctx) => {
         code: 500,
         msg: `API返回HTML内容: ${result.html.substring(0, 500)}...`,
         success: false,
-        count: 0,
         data: null,
         timestamp: Date.now(),
         html: result.html
@@ -190,7 +188,6 @@ router.get('/json/parser', async (ctx) => {
       code: 200,
       msg: 'success',
       success: true,
-      count: 0,
       data: responseData,
       timestamp: Date.now()
     };
@@ -211,7 +208,6 @@ router.get('/json/parser', async (ctx) => {
       code: 500,
       msg: errorMessage,
       success: false,
-      count: 0,
       data: null,
       timestamp: Date.now(),
       ...(htmlContent && { html: htmlContent })
@@ -249,7 +245,6 @@ router.get('/json/:panType/:shareInfo', async (ctx) => {
         code: 500,
         msg: `API返回HTML内容: ${result.html.substring(0, 500)}...`,
         success: false,
-        count: 0,
         data: null,
         timestamp: Date.now(),
         html: result.html
@@ -278,7 +273,6 @@ router.get('/json/:panType/:shareInfo', async (ctx) => {
       code: 200,
       msg: 'success',
       success: true,
-      count: 0,
       data: responseData,
       timestamp: Date.now()
     };
@@ -299,7 +293,6 @@ router.get('/json/:panType/:shareInfo', async (ctx) => {
       code: 500,
       msg: errorMessage,
       success: false,
-      count: 0,
       data: null,
       timestamp: Date.now(),
       ...(htmlContent && { html: htmlContent })
@@ -488,7 +481,6 @@ router.post('/parser', async (ctx) => {
         code: 400,
         msg: '缺少必要参数: url',
         success: false,
-        count: 0,
         data: null,
         timestamp: Date.now()
       };
@@ -521,7 +513,6 @@ router.post('/parser', async (ctx) => {
       code: 200,
       msg: 'success',
       success: true,
-      count: 0,
       data: responseData,
       timestamp: Date.now()
     };
@@ -533,7 +524,6 @@ router.post('/parser', async (ctx) => {
       code: 500,
       msg: error.message || '解析失败',
       success: false,
-      count: 0,
       data: null,
       timestamp: Date.now()
     };
@@ -554,7 +544,6 @@ router.get('/d', async (ctx) => {
         code: 400,
         msg: '缺少必要参数: url',
         success: false,
-        count: 0,
         data: null,
         timestamp: Date.now()
       };
@@ -587,7 +576,6 @@ router.get('/d', async (ctx) => {
       code: 200,
       msg: 'success',
       success: true,
-      count: 0,
       data: responseData,
       timestamp: Date.now()
     };
@@ -599,7 +587,6 @@ router.get('/d', async (ctx) => {
       code: 500,
       msg: error.message || '解析失败',
       success: false,
-      count: 0,
       data: null,
       timestamp: Date.now()
     };
@@ -620,7 +607,6 @@ router.get('/json', async (ctx) => {
         code: 400,
         msg: '缺少必要参数: url',
         success: false,
-        count: 0,
         data: null,
         timestamp: Date.now()
       };
@@ -653,7 +639,6 @@ router.get('/json', async (ctx) => {
       code: 200,
       msg: 'success',
       success: true,
-      count: 0,
       data: responseData,
       timestamp: Date.now()
     };
@@ -665,7 +650,6 @@ router.get('/json', async (ctx) => {
       code: 500,
       msg: error.message || '解析失败',
       success: false,
-      count: 0,
       data: null,
       timestamp: Date.now()
     };

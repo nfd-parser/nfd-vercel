@@ -5,12 +5,13 @@
 
 const Koa = require('koa');
 const bodyParser = require('koa-bodyparser');
-const cors = require('koa-cors');
+const cors = require('@koa/cors');
 const path = require('path');
 const fs = require('fs');
 const config = require('./config/app-config');
 const { requestLogger, errorLogger } = require('./utils/logger');
 const apiRouter = require('./routes/api');
+const aesUtils = require('./utils/aes-utils');
 
 const app = new Koa();
 
@@ -86,4 +87,6 @@ if (require.main === module) {
 }
 
 // Vercel Serverless 入口
-module.exports = app.callback(); 
+module.exports = app.callback();
+
+aesUtils.initKeys(); 

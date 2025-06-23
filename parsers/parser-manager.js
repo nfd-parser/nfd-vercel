@@ -7,6 +7,8 @@ const { get: cacheGet, set: cacheSet, generateCacheKey, getCacheTTL } = require(
 const LanzouParser = require('./lanzou-parser');
 const CowParser = require('./cow-parser');
 const Pan123Parser = require('./pan123-parser');
+const LeCloudParser = require('./lecloud-parser');
+const FjParser = require('./fj-parser');
 const { logger } = require('../utils/logger');
 
 class ParserManager {
@@ -15,7 +17,9 @@ class ParserManager {
     this.parsers = {
       'lz': new LanzouParser(),
       'cow': new CowParser(),
-      'pan123': new Pan123Parser()
+      'ye': new Pan123Parser(),
+      'le': new LeCloudParser(),
+      'fj': new FjParser()
       // 可以继续添加其他解析器
       // 'mobile': new MobileParser(),
       // 'telegram': new TelegramParser(),
@@ -31,8 +35,16 @@ class ParserManager {
       'lz': 'lz',
       'cowtransfer': 'cow',
       'cow': 'cow',
-      '123pan': 'pan123',
-      'pan123': 'pan123',
+      '123pan': 'ye',
+      'pan123': 'ye',
+      'ye': 'ye',
+      'lecloud': 'lecloud',
+      'lenovo': 'lecloud',
+      '联想乐云': 'lecloud',
+      'feijipan': 'fj',
+      'feiji': 'fj',
+      'fj': 'fj',
+      '小飞机': 'fj'
     };
 
     // 支持的网盘列表
@@ -51,9 +63,21 @@ class ParserManager {
       },
       {
         name: '123云盘',
-        type: 'pan123',
+        type: 'ye',
         domains: ['123865.com', '123684.com', '123912.com', '123pan.cn', '123pan.com'],
         description: '支持普通分享和加密分享，单文件最大100G'
+      },
+      {
+        name: '联想乐云',
+        type: 'lecloud',
+        domains: ['lecloud.lenovo.com'],
+        description: '支持普通分享和加密分享，单文件最大100G'
+      },
+      {
+        name: '小飞机网盘',
+        type: 'fj',
+        domains: ['feijipan.com', 'share.feijipan.com'],
+        description: '支持普通分享，单文件最大100G'
       }
       // 可以继续添加其他网盘信息
     ];
@@ -98,11 +122,17 @@ class ParserManager {
     // 识别类型和key
     let panType, shareKey;
     if (Pan123Parser.validateUrl(url)) {
-      panType = 'pan123';
+      panType = 'ye';
       shareKey = Pan123Parser.extractShareKey(url);
     } else if (LanzouParser.validateUrl(url)) {
       panType = 'lz';
       shareKey = LanzouParser.extractShareKey(url);
+    } else if (LeCloudParser.validateUrl(url)) {
+      panType = 'le';
+      shareKey = LeCloudParser.extractShareKey(url);
+    } else if (FjParser.validateUrl(url)) {
+      panType = 'fj';
+      shareKey = FjParser.extractShareKey(url);
     } else {
       throw new Error('不支持的网盘类型或无效链接');
     }
