@@ -1,6 +1,7 @@
 # 网盘直链解析服务 - Node.js版本
 
 基于Node.js和Koa框架的网盘直链解析服务，支持多种网盘的分享链接解析，可部署到Vercel等平台。API接口格式与Java版本netdisk-fast-download完全一致。
+接口地址：https://nfd-vercel-ai.vercel.app
 
 ## 功能特性
 
